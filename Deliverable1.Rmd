@@ -1,0 +1,79 @@
+---
+title: 'Deliverable #1 Project Proposal'
+author: "Group #1: Holland Robinson, Vu Nguyen, Kathryn Mioduszewski, Pranav Patil, Sreechandana Anumolu, Yash Ghate"
+date: "4/4/2023"
+output: 
+  html_document:
+    toc: true
+    theme: readable
+    highlight: tango
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What Data Will You Use?
+This dataset details used car data. The Y variable is whether or not the car is sold. The X variables include attributes like car type, mileage, make, and model, among other attributes.
+```{r}
+car <- read.csv("Car_data.csv")
+```
+
+## Business Question
+With this data, you can build an algorithm to predict what attributes influence the sale of a car. This is relevant to used car dealerships when choosing whether you would accept this car from the seller to subsequently sell. 
+
+## Preliminary Exploration and Cleaning of Data
+```{r}
+car$Sales_ID <- NULL
+car$age <- max(car$year) - car$year
+car$name <- as.factor(car$name)
+car$State.or.Province <- as.factor(car$State.or.Province)
+car$Region <- as.factor(car$Region)
+car$seller_type <- as.factor(car$seller_type)
+car$transmission <- as.factor(car$transmission)
+car$fuel <- as.factor(car$fuel)
+car$owner <- as.factor(car$owner)
+car$sold <- as.factor(car$sold)
+car$name <- ifelse(car$name == "Opel" | car$name == "Ashok" | car$name == "MG" | car$name == "Daewoo" | car$name == "Kia" | car$name == "Ambassador" | car$name == "Isuzu" | car$name == "Land" | car$name == "Force" , "Other", car$name)
+car$City <- ifelse(car$City == "New York City" | car$City == "Los Angeles" | car$City == "Seattle" | car$City == "Chicago" | car$City == "Boston" | car$City == "Washington" | car$City == "Philadelphia" | car$City == "Charlotte" | car$City == "Miami" | car$City == "Detroit"  , car$City, "Other")
+
+car$sold <- as.numeric(car$sold) - 1
+
+
+str(car)
+summary(car)
+```
+
+## Preliminary Regression Model
+```{r}
+#Test and Train
+
+set.seed(12345)
+test_rows <- sample(1:nrow(car), 0.25*nrow(car))
+
+car_test <- car[test_rows, ]
+car_train <- car[-test_rows, ]
+
+# Model
+
+basemodel <- glm(sold ~ ., data = car_train, family = "binomial")
+summary(basemodel)
+
+# Predict
+carpred <- predict(basemodel, car_test, type = "response")
+summary(carpred)
+
+car_binary_pred <- ifelse(carpred >= 0.5, 1, 0)
+table(car_binary_pred)
+
+# Confusion Matrix
+library(caret)
+car_test$sold <- ifelse(car_test$sold, 1, 0)
+confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
+```
+
+## GitHub
+
+[Here](https://github.com/Hmrobinson/to628-group1project) is the link to our GitHub Repo. The Professor and TA's have been added as collaborators. 
+
