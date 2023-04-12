@@ -284,6 +284,13 @@ pre code {
 <li><a href="#preliminary-exploration-and-cleaning-of-data">Preliminary Exploration and Cleaning of Data</a></li>
 <li><a href="#preliminary-regression-model">Preliminary Regression Model</a></li>
 <li><a href="#github">GitHub</a></li>
+<li><a href="#knn-model">KNN Model</a>
+<ul>
+<li><a href="#build-model">Build Model</a></li>
+</ul></li>
+<li><a href="#test-and-predict">Test and Predict</a></li>
+<li><a href="#create-binary-predictions-from-probabilities">Create binary predictions from probabilities</a></li>
+<li><a href="#evaluate-performance">Evaluate Performance</a></li>
 </ul>
 </div>
 
@@ -670,6 +677,56 @@ pre code {
 <div id="github" class="section level2">
 <h2>GitHub</h2>
 <p><a href="https://github.com/Hmrobinson/to628-group1project">Here</a> is the link to our GitHub Repo. The Professor and TA’s have been added as collaborators.</p>
+</div>
+<div id="knn-model" class="section level1">
+<h1>KNN Model</h1>
+<div id="build-model" class="section level2">
+<h2>Build Model</h2>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>knnmodel <span class="ot">&lt;-</span> <span class="fu">knnreg</span>(sold <span class="sc">~</span>., <span class="at">data =</span> car_train, <span class="at">k =</span> <span class="dv">5</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="test-and-predict" class="section level1">
+<h1>Test and Predict</h1>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>knnpredict <span class="ot">&lt;-</span> <span class="fu">predict</span>(knnmodel, <span class="at">newdata =</span> car_test)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">postResample</span>(knnpredict, car_test<span class="sc">$</span>sold)</span></code></pre></div>
+<pre><code>##         RMSE     Rsquared          MAE 
+## 4.678151e-01 1.246926e-05 3.699701e-01</code></pre>
+</div>
+<div id="create-binary-predictions-from-probabilities" class="section level1">
+<h1>Create binary predictions from probabilities</h1>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>knn_binary_pred <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(knnpredict <span class="sc">&gt;=</span> <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span></code></pre></div>
+</div>
+<div id="evaluate-performance" class="section level1">
+<h1>Evaluate Performance</h1>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(<span class="fu">as.factor</span>(knn_binary_pred), <span class="fu">as.factor</span>(car_test<span class="sc">$</span>sold))</span></code></pre></div>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    0    1
+##          0 1330  423
+##          1  165   58
+##                                           
+##                Accuracy : 0.7024          
+##                  95% CI : (0.6817, 0.7225)
+##     No Information Rate : 0.7566          
+##     P-Value [Acc &gt; NIR] : 1               
+##                                           
+##                   Kappa : 0.0125          
+##                                           
+##  Mcnemar&#39;s Test P-Value : &lt;2e-16          
+##                                           
+##             Sensitivity : 0.8896          
+##             Specificity : 0.1206          
+##          Pos Pred Value : 0.7587          
+##          Neg Pred Value : 0.2601          
+##              Prevalence : 0.7566          
+##          Detection Rate : 0.6731          
+##    Detection Prevalence : 0.8871          
+##       Balanced Accuracy : 0.5051          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
 </div>
 
 
