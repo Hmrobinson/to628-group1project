@@ -108,21 +108,21 @@ confusionMatrix(as.factor(knn_binary_pred), as.factor(car_test$sold))
 
 # Build ANN Model
 ```{r}
-library(neuralnet)
-set.seed(12345)
+#library(neuralnet)
+#set.seed(12345)
 
 #BUILDING THE MODEL
-model_ann <- neuralnet( yyes ~ ., data = tele_train, hidden = 1) 
-plot(model_ann)
-#saveRDS(model_ann, file = 'model_ann.rds')
+#model_ann <- neuralnet( yyes ~ ., data = tele_train, hidden = 1) 
+#plot(model_ann)
+
 
 #EVALUATING 
 #model_ann <- readRDS("model_ann.rds")
-tele_pred_ann <- predict(model_ann, tele_test)
-tele_binary_pred_ann <- ifelse(tele_pred_ann >= 0.26, 1, 0)
+#tele_pred_ann <- predict(model_ann, tele_test)
+#tele_binary_pred_ann <- ifelse(tele_pred_ann >= 0.26, 1, 0)
 
-cm_ann <- confusionMatrix(as.factor(tele_binary_pred_ann), as.factor(tele_test$yyes), positive="1")
-cm_ann
+#cm_ann <- confusionMatrix(as.factor(tele_binary_pred_ann), as.factor(tele_test$yyes), positive="1")
+#cm_ann
 ```
 
 # DECISION TREE
@@ -131,14 +131,14 @@ library(C50)
 
 #BUILDING THE MODEL
 set.seed(12345)
-model_dt <- C5.0(as.factor(yyes)~., data = tele_train)
+model_dt <- C5.0(as.factor(sold)~., data = car_train)
 plot(model_dt)
 summary(model_dt)
 
 #PREDICTING THE MODEL
-tele_pred_dt <- predict(model_dt, tele_test)
+car_pred_dt <- predict(model_dt, car_test)
 
 #EVALUATING THE MODEL
-cm_dt<- confusionMatrix(as.factor(tele_pred_dt), as.factor(tele_test$yyes), positive = "1")
+cm_dt<- confusionMatrix(as.factor(car_pred_dt), as.factor(car_test$sold), positive = "1")
 cm_dt
 ```
