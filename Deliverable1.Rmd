@@ -125,3 +125,20 @@ confusionMatrix(as.factor(knn_binary_pred), as.factor(car_test$sold))
 #confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
 ```
 
+# DECISION TREE
+```{r}
+library(C50)
+
+#BUILDING THE MODEL
+set.seed(12345)
+model_dt <- C5.0(as.factor(yyes)~., data = tele_train)
+plot(model_dt)
+summary(model_dt)
+
+#PREDICTING THE MODEL
+tele_pred_dt <- predict(model_dt, tele_test)
+
+#EVALUATING THE MODEL
+cm_dt<- confusionMatrix(as.factor(tele_pred_dt), as.factor(tele_test$yyes), positive = "1")
+cm_dt
+```
