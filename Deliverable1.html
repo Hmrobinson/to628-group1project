@@ -293,6 +293,7 @@ pre code {
 </ul></li>
 <li><a href="#build-ann-model">Build ANN Model</a></li>
 <li><a href="#decision-tree">DECISION TREE</a></li>
+<li><a href="#random-forest">RANDOM FOREST</a></li>
 </ul>
 </div>
 
@@ -767,7 +768,7 @@ pre code {
 ## C5.0.formula(formula = as.factor(sold) ~ ., data = car_train)
 ## 
 ## 
-## C5.0 [Release 2.07 GPL Edition]      Thu Apr 13 11:10:53 2023
+## C5.0 [Release 2.07 GPL Edition]      Thu Apr 13 11:13:52 2023
 ## -------------------------------
 ## 
 ## Class specified by attribute `outcome&#39;
@@ -834,6 +835,56 @@ pre code {
 ##       Balanced Accuracy : 0.7122        
 ##                                         
 ##        &#39;Positive&#39; Class : 1             
+## </code></pre>
+</div>
+<div id="random-forest" class="section level1">
+<h1>RANDOM FOREST</h1>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">#LOADING THE LIBRARY</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span></code></pre></div>
+<pre><code>## Warning: package &#39;randomForest&#39; was built under R version 4.1.2</code></pre>
+<pre><code>## randomForest 4.7-1.1</code></pre>
+<pre><code>## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre><code>## 
+## Attaching package: &#39;randomForest&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     margin</code></pre>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">#BUILDING THE MODEL</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">12345</span>) <span class="co"># for reproducibility</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>model_rf <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(<span class="fu">as.factor</span>(sold) <span class="sc">~</span> ., <span class="at">data =</span> car_train)</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a><span class="co">#PREDICTING THE MODEL</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>car_pred_rf <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_rf, car_test)</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a><span class="co">#EVALUATING THE MODEL</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>cm_rf <span class="ot">&lt;-</span> <span class="fu">confusionMatrix</span>(<span class="fu">as.factor</span>(car_pred_rf), <span class="fu">as.factor</span>(car_test<span class="sc">$</span>sold), <span class="at">positive =</span> <span class="st">&quot;1&quot;</span>)</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(cm_rf)</span></code></pre></div>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    0    1
+##          0 1454  253
+##          1   41  228
+##                                           
+##                Accuracy : 0.8512          
+##                  95% CI : (0.8348, 0.8666)
+##     No Information Rate : 0.7566          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.5251          
+##                                           
+##  Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
+##                                           
+##             Sensitivity : 0.4740          
+##             Specificity : 0.9726          
+##          Pos Pred Value : 0.8476          
+##          Neg Pred Value : 0.8518          
+##              Prevalence : 0.2434          
+##          Detection Rate : 0.1154          
+##    Detection Prevalence : 0.1361          
+##       Balanced Accuracy : 0.7233          
+##                                           
+##        &#39;Positive&#39; Class : 1               
 ## </code></pre>
 </div>
 

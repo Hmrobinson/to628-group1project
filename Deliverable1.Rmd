@@ -142,3 +142,20 @@ car_pred_dt <- predict(model_dt, car_test)
 cm_dt<- confusionMatrix(as.factor(car_pred_dt), as.factor(car_test$sold), positive = "1")
 cm_dt
 ```
+
+# RANDOM FOREST
+```{r}
+#LOADING THE LIBRARY
+library(randomForest)
+
+#BUILDING THE MODEL
+set.seed(12345) # for reproducibility
+model_rf <- randomForest(as.factor(sold) ~ ., data = car_train)
+
+#PREDICTING THE MODEL
+car_pred_rf <- predict(model_rf, car_test)
+
+#EVALUATING THE MODEL
+cm_rf <- confusionMatrix(as.factor(car_pred_rf), as.factor(car_test$sold), positive = "1")
+print(cm_rf)
+```
