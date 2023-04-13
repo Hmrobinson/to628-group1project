@@ -1,0 +1,304 @@
+---
+title: "Homework_2"
+author: "Yash Ghate"
+date: "2023-04-11"
+output: 
+  html_document: 
+    toc: true
+    toc_float: true 
+    code_folding: hide
+    theme: spacelab
+    highlight: kate
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# READING AND CLEANING THE DATA
+```{r}
+#READING THE DATA
+tele <- read.csv("tele.csv", stringsAsFactors = TRUE)
+
+#CLEANING THE DATA
+##Deleting columns X and Duration
+tele$X <- NULL
+tele$duration <- NULL
+##Converting pdays to dummies and deleting pdays
+tele$pdaysdummy <- ifelse(tele$pdays==999,1,0)
+tele$pdays <- NULL
+
+#str(tele)
+#summary(tele)
+
+#CONVERTING DATA INTO DUMMY VARIABLES USING MODEL.MATRIX 
+telemm <- as.data.frame(model.matrix(~.-1,tele))
+#str(telemm)
+#summary(telemm)
+
+#RANDOMIZING THE DATA
+set.seed(12345)
+tele_random <- telemm[sample(nrow(telemm)),]
+#str((tele_random))
+#summary(tele_random)
+
+#NORMALIZING THE DATA
+##Defining a new function "normalize"
+normalize <- function(x){
+  return((x-min(x))/(max(x)-min(x)))
+}
+##using the defined function to normalize our data
+tele_norm <- as.data.frame(lapply(tele_random,normalize ))
+#str(tele_norm)
+summary(tele_norm)
+```
+# SPLIT THE DATA INTO TEST AND TRAIN
+```{r}
+set.seed(12345)
+test_set <- sample(nrow(tele_norm), 0.5*nrow(tele_norm))
+
+#SPLITING THE DATA INTO TEST AND TRAIN 
+
+##Test and Train for logistic regression, ANN, 
+tele_test <- tele_norm[test_set, ]
+tele_train <- tele_norm[-test_set, ]
+
+##Test and Train for KNN
+#The test and train data for KNN shall not have y values in it hence some extra work
+tele_test_knn <- tele_norm[test_set, -match("yyes", names(tele_norm))]
+tele_train_knn <- tele_norm[-test_set, -match("yyes", names(tele_norm))]
+#Now we have to create lable aka response
+tele_test_labels <- tele_norm[test_set, "yyes"]
+tele_train_labels <- tele_norm[-test_set, "yyes"]
+
+```
+# LOGISTICS REGRESSION
+```{r}
+#BUILDING LOGISTICS REGRESSION MODEL
+set.seed(12345)
+model_lg <- glm(yyes ~., data = tele_train, family = "binomial")
+#summary(model_lg)
+
+#PREDICTING THE MODEL 
+tele_pred_lg <- predict(model_lg, tele_test, type = "response")
+summary(tele_pred_lg)
+#Converting the prediction into 0 and 1
+tele_binary_pred_lg <- ifelse(tele_pred_lg >= 0.26, 1, 0)
+#table(tele_binary_pred_lg)
+#summary(tele_binary_pred_lg)
+
+#EVALUATING THE MODEL
+library(caret)
+cm_lg<-confusionMatrix(as.factor(tele_binary_pred_lg), as.factor(tele_test$yyes), positive="1")
+print(cm_lg)
+```
+# KNN
+```{r}
+library(class)
+#BUILDING AND PREDICTING THE MODEL 
+set.seed(12345)
+model_knn <- knn(tele_train_knn, tele_test_knn, tele_train_labels, k=3)
+
+#EVALUATING THE MODEL
+cm_knn <- confusionMatrix(as.factor(model_knn), as.factor(tele_test_labels), positive="1" )
+print(cm_knn)
+```
+# ANN
+```{r}
+library(neuralnet)
+set.seed(12345)
+
+#BUILDING THE MODEL
+model_ann <- neuralnet( yyes ~ ., data = tele_train, hidden = 1) 
+plot(model_ann)
+#saveRDS(model_ann, file = 'model_ann.rds')
+
+#EVALUATING 
+#model_ann <- readRDS("model_ann.rds")
+tele_pred_ann <- predict(model_ann, tele_test)
+tele_binary_pred_ann <- ifelse(tele_pred_ann >= 0.26, 1, 0)
+
+cm_ann <- confusionMatrix(as.factor(tele_binary_pred_ann), as.factor(tele_test$yyes), positive="1")
+cm_ann
+```
+# DECISION TREE
+```{r}
+library(C50)
+
+#BUILDING THE MODEL
+set.seed(12345)
+model_dt <- C5.0(as.factor(yyes)~., data = tele_train)
+plot(model_dt)
+summary(model_dt)
+
+#PREDICTING THE MODEL
+tele_pred_dt <- predict(model_dt, tele_test)
+
+#EVALUATING THE MODEL
+cm_dt<- confusionMatrix(as.factor(tele_pred_dt), as.factor(tele_test$yyes), positive = "1")
+cm_dt
+```
+# RANDOM FOREST
+```{r}
+#LOADING THE LIBRARY
+library(randomForest)
+
+#BUILDING THE MODEL
+set.seed(12345) # for reproducibility
+model_rf <- randomForest(as.factor(yyes) ~ ., data = tele_train)
+
+#PREDICTING THE MODEL
+tele_pred_rf <- predict(model_rf, tele_test)
+
+#EVALUATING THE MODEL
+cm_rf <- confusionMatrix(as.factor(tele_pred_rf), as.factor(tele_test$yyes), positive = "1")
+print(cm_rf)
+```
+# COMBINING PREDICTION VECTORS AND SPLITING THE NEW DATA FRAME
+```{r}
+df <- data.frame(tele_pred_lg, model_knn, tele_pred_ann, tele_pred_dt, tele_pred_rf, tele_test_labels)
+#summary(df)
+
+set.seed(12345)
+test_set_df <- sample(1:nrow(df), 0.3*nrow(df))
+
+df_test <- df[test_set_df, ]
+df_train <- df[-test_set_df, ]
+```
+# DECISION TREE FOR NEW DATA FRAME
+```{r}
+#BUILDING THE MODEL
+model_df <- C5.0(as.factor(tele_test_labels)~., data = df_train)
+plot(model_df)
+summary(model_df)
+
+#PREDICTING THE MODEL
+df_pred <- predict(model_df, df_test)
+
+cm_df <- confusionMatrix(as.factor(df_pred), as.factor(df_test$tele_test_labels), positive="1")
+cm_df
+```
+# COMPARING THE CONFUSION MATRIX KAPPA FOR EACH MODEL WITH SECOND LEVEL MODEL
+```{r}
+# Print the confusion matrix and kappa for each model
+cat("Confusion matrix and kappa for the logistic regression model:\n")
+print(cm_lg$table)
+cat("Kappa: ", cm_lg$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the KNN model:\n")
+print(cm_knn$table)
+cat("Kappa: ", cm_knn$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the ANN model:\n")
+print(cm_ann$table)
+cat("Kappa: ", cm_ann$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the decision tree model:\n")
+print(cm_dt$table)
+cat("Kappa: ", cm_dt$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the random forest model:\n")
+print(cm_rf$table)
+cat("Kappa: ", cm_rf$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the second level decision tree model:\n")
+print(cm_df$table)
+cat("Kappa: ", cm_df$overall["Kappa"], "\n\n")
+
+# Compare the kappa values
+cat("Comparison of kappa values:\n")
+cat("Logistic regression model: ", cm_lg$overall["Kappa"], "\n")
+cat("KNN model: ", cm_knn$overall["Kappa"], "\n")
+cat("ANN model: ", cm_ann$overall["Kappa"], "\n")
+cat("Decision tree model: ", cm_dt$overall["Kappa"], "\n")
+cat("Random forest model: ", cm_rf$overall["Kappa"], "\n")
+cat("Second level decision tree model: ", cm_df$overall["Kappa"], "\n")
+```
+# COST MATRIX PARAMETERS
+```{r}
+# Define cost matrix
+error_cost <- matrix(c(0, 1, 5, 0), nrow = 2)
+
+# Build decision tree model with a cost matrix
+error_model <- C5.0(as.factor(tele_test_labels)~., data = df_train, costs = error_cost)
+plot(error_model)
+summary(error_model)
+
+# Predict using the model and evaluate performance
+df_pred_cm <- predict(error_model, df_test)
+cm_cm <- confusionMatrix(as.factor(df_pred_cm), as.factor(df_test$tele_test_labels), positive="1")
+cm_cm
+```
+# COMPARING THE CONFUSION MATRIX KAPPA FOR EACH MODEL WITH COST MATRIX MODEL
+```{r}
+# Print the confusion matrix and kappa for each model
+cat("Confusion matrix and kappa for the logistic regression model:\n")
+print(cm_lg$table)
+cat("Kappa: ", cm_lg$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the KNN model:\n")
+print(cm_knn$table)
+cat("Kappa: ", cm_knn$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the ANN model:\n")
+print(cm_ann$table)
+cat("Kappa: ", cm_ann$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the decision tree model:\n")
+print(cm_dt$table)
+cat("Kappa: ", cm_dt$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the random forest model:\n")
+print(cm_rf$table)
+cat("Kappa: ", cm_rf$overall["Kappa"], "\n\n")
+
+cat("Confusion matrix and kappa for the cost matrix decision tree model:\n")
+print(cm_df$table)
+cat("Kappa: ", cm_cm$overall["Kappa"], "\n\n")
+
+# Compare the kappa values
+cat("Comparison of kappa values:\n")
+cat("Logistic regression model: ", cm_lg$overall["Kappa"], "\n")
+cat("KNN model: ", cm_knn$overall["Kappa"], "\n")
+cat("ANN model: ", cm_ann$overall["Kappa"], "\n")
+cat("Decision tree model: ", cm_dt$overall["Kappa"], "\n")
+cat("Random forest model: ", cm_rf$overall["Kappa"], "\n")
+cat("Cost Matrix decision tree model: ", cm_cm$overall["Kappa"], "\n")
+```
+# Point 12
+```{r}
+cat("I have discussed this with the professor and he said, it is not essential.")
+```
+# SUMMARY
+```{r}
+cat("After carefully evaluating the performance of individual models as well as the stacked model, it appears that the stacked model did not result in any significant improvement in the Kappa values. Based on the analysis, the Kappa value for the second level model was only 3.09, which was not higher than the Kappa values of the individual models. This finding is somewhat unexpected as stacking is generally expected to yield better performance than the individual models. However, it is possible that the choice of models, the feature engineering, or the stacking methodology used in this study was not optimal for this particular dataset. Further investigation may be needed to identify the causes of this suboptimal performance and to explore other stacking methods that may yield better results.")
+```
+# MISC
+```{r}
+##DECISION TREE IMPROVED
+#library(caret)
+#set.seed(12345)
+#ctrl <- trainControl(method = "cv", number = 10, selectionFunction = "oneSE")
+#ctrl <- trainControl(selectionFunction = "oneSE")
+###oneSE==one standard error
+#grid <- expand.grid(.model="tree", .trials= c(1,5,10,15,20), .winnow="FALSE")
+#train_model_dt <- train(as.factor(yyes) ~., data = tele_train, method="C5.0", metric="Kappa", trControl=ctrl, tuneGrid= grid)
+#predict_train <- predict(train_model_dt, tele_test)
+#confusionMatrix(as.factor(predict_train), as.factor(tele_test$yyes), positive="1")
+
+
+## IMPROVED KNN MODEL
+#library(caret)
+# Define the tuning grid
+#grid_knn <- expand.grid(k = seq(5,60,5))
+# Define the training control
+#ctrl_knn <- trainControl(method = "cv", number = 4, selectionFunction = "oneSE")
+# Train the KNN model
+#set.seed(12345)
+#train_model_knn <- train(as.factor(yyes)~ ., data = tele_train, method = "knn", metric="Kappa", trControl = ctrl_knn, tuneGrid = grid_knn, preProcess=c("center","scale"))
+#train_model_knn
+#summary(train_model_knn)
+# Make predictions on the test set
+#predict_train_knn <- predict(train_model_knn, tele_test)
+# Generate confusion matrix
+#confusionMatrix(as.factor(predict_train_knn), as.factor(tele_test$yyes), positive = "1")
+```
