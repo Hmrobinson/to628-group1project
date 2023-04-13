@@ -106,23 +106,24 @@ knn_binary_pred <- ifelse(knnpredict >= 0.5, 1, 0)
 confusionMatrix(as.factor(knn_binary_pred), as.factor(car_test$sold))
 ```
 
-# Build ANN Model
+
+# ANN Model
 ```{r}
-#library(neuralnet)
-#set.seed(12345)
+library(neuralnet)
+set.seed(12345)
 
 #BUILDING THE MODEL
-#model_ann <- neuralnet( yyes ~ ., data = tele_train, hidden = 1) 
-#plot(model_ann)
-
+model_ann <- neuralnet( sold ~ ., data = car_train, hidden = 1) 
+plot(model_ann)
+#saveRDS(model_ann, file = 'model_ann.rds')
 
 #EVALUATING 
 #model_ann <- readRDS("model_ann.rds")
-#tele_pred_ann <- predict(model_ann, tele_test)
-#tele_binary_pred_ann <- ifelse(tele_pred_ann >= 0.26, 1, 0)
+car_pred_ann <- predict(model_ann, car_test)
+car_binary_pred_ann <- ifelse(car_pred_ann >= 0.26, 1, 0)
 
-#cm_ann <- confusionMatrix(as.factor(tele_binary_pred_ann), as.factor(tele_test$yyes), positive="1")
-#cm_ann
+cm_ann <- confusionMatrix(as.factor(car_binary_pred_ann), as.factor(car_test$sold), positive="1")
+cm_ann
 ```
 
 # DECISION TREE
@@ -147,15 +148,12 @@ cm_dt
 ```{r}
 #LOADING THE LIBRARY
 library(randomForest)
+carforest <- randomForest(Y ~. , data = car_train)
+plot(carforest)
+summary(carforest)
+carforestpred <- predict(carforest, car_test)
+probab <- ifelse(carforestpred>0.1,1,0)
+confusionMatrix(as.factor(probab), as.factor(car_test$sold), positive = "1")
 
-#BUILDING THE MODEL
-set.seed(12345) # for reproducibility
-model_rf <- randomForest(as.factor(sold) ~ ., data = car_train)
-
-#PREDICTING THE MODEL
-car_pred_rf <- predict(model_rf, car_test)
-
-#EVALUATING THE MODEL
-cm_rf <- confusionMatrix(as.factor(car_pred_rf), as.factor(car_test$sold), positive = "1")
-print(cm_rf)
 ```
+
