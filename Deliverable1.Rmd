@@ -77,35 +77,24 @@ confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
 
 [Here](https://github.com/Hmrobinson/to628-group1project) is the link to our GitHub Repo. The Professor and TA's have been added as collaborators. 
 
-
 # KNN Model
-
-## Build Model
-
 ```{r}
+#Load Library
 library(caret)
+
+#Build Model
 knnmodel <- knnreg(sold ~., data = car_train, k = 5)
-```
 
 ## Test and Predict
-
-```{r}
 knnpredict <- predict(knnmodel, newdata = car_test)
 postResample(knnpredict, car_test$sold)
-```
-
 
 ## Create binary predictions from probabilities
-```{r}
 knn_binary_pred <- ifelse(knnpredict >= 0.5, 1, 0)
-```
 
 ## Evaluate Performance
-
-```{r}
 confusionMatrix(as.factor(knn_binary_pred), as.factor(car_test$sold))
 ```
-
 
 # ANN Model
 ```{r}
@@ -156,4 +145,3 @@ probab <- ifelse(carforestpred>0.1,1,0)
 confusionMatrix(as.factor(probab), as.factor(car_test$sold), positive = "1")
 
 ```
-
