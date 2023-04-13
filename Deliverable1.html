@@ -287,17 +287,21 @@ pre code {
 <li><a href="#knn-model">KNN Model</a>
 <ul>
 <li><a href="#build-model">Build Model</a></li>
-</ul></li>
 <li><a href="#test-and-predict">Test and Predict</a></li>
 <li><a href="#create-binary-predictions-from-probabilities">Create binary predictions from probabilities</a></li>
 <li><a href="#evaluate-performance">Evaluate Performance</a></li>
+</ul></li>
+<li><a href="#build-ann-model">Build ANN Model</a>
+<ul>
+<li><a href="#predict-and-test">Predict and Test</a></li>
+</ul></li>
 </ul>
 </div>
 
 <div id="what-data-will-you-use" class="section level2">
 <h2>What Data Will You Use?</h2>
 <p>This dataset details used car data. The Y variable is whether or not the car is sold. The X variables include attributes like car type, mileage, make, and model, among other attributes.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>car <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;Car_data.csv&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>car <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;Car_data (1).csv&quot;</span>)</span></code></pre></div>
 </div>
 <div id="business-question" class="section level2">
 <h2>Business Question</h2>
@@ -325,7 +329,7 @@ pre code {
 <pre><code>## &#39;data.frame&#39;:    7906 obs. of  18 variables:
 ##  $ name             : chr  &quot;20&quot; &quot;27&quot; &quot;11&quot; &quot;12&quot; ...
 ##  $ year             : int  2014 2014 2006 2010 2007 2017 2007 2001 2011 2013 ...
-##  $ selling_price    : int  450000 370000 158000 225000 130000 440000 96000 45000 350000 200000 ...
+##  $ selling_price    : num  5488 4512 1927 2744 1585 ...
 ##  $ km_driven        : int  145500 120000 140000 127000 120000 45000 175000 5000 90000 169000 ...
 ##  $ Region           : Factor w/ 4 levels &quot;Central&quot;,&quot;East&quot;,..: 2 2 1 1 2 2 4 4 4 1 ...
 ##  $ State.or.Province: Factor w/ 49 levels &quot;Alabama&quot;,&quot;Arizona&quot;,..: 8 31 12 12 31 31 4 4 4 42 ...
@@ -343,12 +347,12 @@ pre code {
 ##  $ age              : int  6 6 14 10 13 3 13 19 9 7 ...</code></pre>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(car)</span></code></pre></div>
 <pre><code>##      name                year      selling_price        km_driven      
-##  Length:7906        Min.   :1994   Min.   :   29999   Min.   :      1  
-##  Class :character   1st Qu.:2012   1st Qu.:  270000   1st Qu.:  35000  
-##  Mode  :character   Median :2015   Median :  450000   Median :  60000  
-##                     Mean   :2014   Mean   :  649814   Mean   :  69189  
-##                     3rd Qu.:2017   3rd Qu.:  690000   3rd Qu.:  95425  
-##                     Max.   :2020   Max.   :10000000   Max.   :2360457  
+##  Length:7906        Min.   :1994   Min.   :   365.8   Min.   :      1  
+##  Class :character   1st Qu.:2012   1st Qu.:  3292.7   1st Qu.:  35000  
+##  Mode  :character   Median :2015   Median :  5487.8   Median :  60000  
+##                     Mean   :2014   Mean   :  7924.6   Mean   :  69189  
+##                     3rd Qu.:2017   3rd Qu.:  8414.6   3rd Qu.:  95425  
+##                     Max.   :2020   Max.   :121951.2   Max.   :2360457  
 ##                                                                        
 ##      Region      State.or.Province     City               fuel     
 ##  Central:2376   California: 901    Length:7906        CNG   :  52  
@@ -405,112 +409,112 @@ pre code {
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
-## -2.7289  -0.6380  -0.4963   0.0000   2.8138  
+## -2.7503  -0.6362  -0.4809   0.0000   2.8080  
 ## 
 ## Coefficients: (4 not defined because of singularities)
 ##                                         Estimate Std. Error    z value Pr(&gt;|z|)
-## (Intercept)                            1.687e+00  3.127e+01  5.400e-02  0.95697
-## name11                                -2.857e-02  2.395e-01 -1.190e-01  0.90507
-## name12                                -3.384e-02  1.965e-01 -1.720e-01  0.86325
-## name14                                 2.753e-01  4.876e-01  5.650e-01  0.57228
-## name15                                 4.912e-03  6.404e-01  8.000e-03  0.99388
-## name18                                -6.562e-01  8.860e-01 -7.410e-01  0.45887
-## name19                                -5.682e-02  2.383e-01 -2.380e-01  0.81155
-## name20                                 1.244e-02  1.942e-01  6.400e-02  0.94893
-## name21                                -1.511e-01  5.285e-01 -2.860e-01  0.77494
-## name23                                -4.324e-01  9.961e-01 -4.340e-01  0.66424
-## name24                                 6.563e-01  3.585e-01  1.831e+00  0.06714
-## name26                                 7.673e-02  2.871e-01  2.670e-01  0.78927
-## name27                                -6.968e-01  4.294e-01 -1.623e+00  0.10468
-## name28                                -5.396e-02  2.130e-01 -2.530e-01  0.79999
-## name29                                -1.637e-01  2.629e-01 -6.230e-01  0.53350
-## name3                                  2.714e-01  5.621e-01  4.830e-01  0.62924
-## name30                                -4.617e-01  3.318e-01 -1.391e+00  0.16410
-## name31                                -6.083e-01  5.539e-01 -1.098e+00  0.27216
-## name4                                 -5.945e-01  5.707e-01 -1.042e+00  0.29753
-## name5                                  1.320e-01  2.789e-01  4.730e-01  0.63608
-## name7                                 -7.406e-01  5.879e-01 -1.260e+00  0.20771
-## name8                                 -2.652e+00  1.261e+00 -2.103e+00  0.03550
-## nameOther                             -1.257e+00  8.363e-01 -1.503e+00  0.13292
-## year                                   1.020e-03  1.560e-02  6.500e-02  0.94789
-## selling_price                          2.424e-07  1.316e-07  1.842e+00  0.06547
-## km_driven                              8.816e-07  8.607e-07  1.024e+00  0.30572
-## RegionEast                            -3.136e-01  6.132e-01 -5.110e-01  0.60904
-## RegionSouth                           -6.616e-01  4.265e-01 -1.551e+00  0.12091
-## RegionWest                            -1.088e+13  3.451e+13 -3.150e-01  0.75263
-## State.or.ProvinceArizona               1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceArkansas              1.011e+00  4.326e-01  2.338e+00  0.01939
-## State.or.ProvinceCalifornia            1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceColorado              1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceConnecticut          -8.705e-01  7.647e-01 -1.138e+00  0.25497
-## State.or.ProvinceDelaware             -2.504e+01  1.219e+05  0.000e+00  0.99984
-## State.or.ProvinceDistrict of Columbia  5.673e+00  8.194e+00  6.920e-01  0.48874
-## State.or.ProvinceFlorida               4.466e-01  3.755e-01  1.190e+00  0.23424
-## State.or.ProvinceGeorgia               1.236e+00  3.871e-01  3.193e+00  0.00141
-## State.or.ProvinceIdaho                 1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceIllinois             -2.700e-01  2.981e-01 -9.060e-01  0.36515
-## State.or.ProvinceIndiana               6.111e-02  3.157e-01  1.940e-01  0.84651
-## State.or.ProvinceIowa                  8.424e-02  3.532e-01  2.390e-01  0.81149
-## State.or.ProvinceKansas                1.181e-01  3.586e-01  3.290e-01  0.74179
-## State.or.ProvinceKentucky              6.388e-01  5.000e-01  1.278e+00  0.20135
-## State.or.ProvinceLouisiana            -1.340e+05  9.791e+06 -1.400e-02  0.98908
-## State.or.ProvinceMaine                -2.249e-01  6.399e-01 -3.510e-01  0.72529
-## State.or.ProvinceMaryland              2.153e-01  6.067e-01  3.550e-01  0.72270
-## State.or.ProvinceMassachusetts        -8.262e-01  6.844e-01 -1.207e+00  0.22734
-## State.or.ProvinceMichigan             -6.042e-01  3.270e-01 -1.848e+00  0.06461
-## State.or.ProvinceMinnesota            -4.777e-01  3.666e-01 -1.303e+00  0.19255
-## State.or.ProvinceMississippi          -4.504e+15  9.397e+06 -4.793e+08  &lt; 2e-16
-## State.or.ProvinceMissouri             -3.353e+00  1.033e+00 -3.245e+00  0.00118
-## State.or.ProvinceMontana               1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceNebraska             -1.837e+00  7.672e-01 -2.394e+00  0.01667
-## State.or.ProvinceNevada                1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceNew Hampshire        -7.739e-01  8.266e-01 -9.360e-01  0.34912
-## State.or.ProvinceNew Jersey           -6.865e-01  6.414e-01 -1.070e+00  0.28448
-## State.or.ProvinceNew Mexico            1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceNew York              8.150e-01  5.754e-01  1.417e+00  0.15661
-## State.or.ProvinceNorth Carolina        5.818e-01  4.043e-01  1.439e+00  0.15011
-## State.or.ProvinceNorth Dakota         -2.648e+01  9.234e+04  0.000e+00  0.99977
-## State.or.ProvinceOhio                 -2.575e-01  5.872e-01 -4.380e-01  0.66103
-## State.or.ProvinceOklahoma              4.131e-01  3.662e-01  1.128e+00  0.25931
-## State.or.ProvinceOregon                1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvincePennsylvania         -1.178e-01  6.083e-01 -1.940e-01  0.84641
-## State.or.ProvinceRhode Island         -2.484e+01  9.558e+04  0.000e+00  0.99979
-## State.or.ProvinceSouth Carolina       -1.116e+00  6.858e-01 -1.627e+00  0.10365
-## State.or.ProvinceSouth Dakota         -3.327e+01  1.733e+07  0.000e+00  1.00000
-## State.or.ProvinceTennessee             4.997e-01  4.240e-01  1.178e+00  0.23863
-## State.or.ProvinceTexas                 2.589e-01  2.807e-01  9.230e-01  0.35626
-## State.or.ProvinceUtah                  1.088e+13  3.451e+13  3.150e-01  0.75263
-## State.or.ProvinceVermont              -8.349e-01  8.237e-01 -1.014e+00  0.31079
-## State.or.ProvinceVirginia             -1.286e+00  5.723e-01 -2.247e+00  0.02462
-## State.or.ProvinceWashington            1.088e+13  3.451e+13  3.150e-01  0.75263
+## (Intercept)                            1.408e+00  3.125e+01  4.500e-02  0.96405
+## name11                                -2.710e-02  2.394e-01 -1.130e-01  0.90985
+## name12                                -3.395e-02  1.962e-01 -1.730e-01  0.86259
+## name14                                 2.708e-01  4.866e-01  5.570e-01  0.57783
+## name15                                 1.240e-02  6.405e-01  1.900e-02  0.98456
+## name18                                -6.444e-01  8.864e-01 -7.270e-01  0.46724
+## name19                                -6.059e-02  2.378e-01 -2.550e-01  0.79885
+## name20                                 1.334e-02  1.939e-01  6.900e-02  0.94514
+## name21                                -1.389e-01  5.265e-01 -2.640e-01  0.79193
+## name23                                -4.323e-01  9.986e-01 -4.330e-01  0.66508
+## name24                                 6.590e-01  3.577e-01  1.842e+00  0.06545
+## name26                                 7.588e-02  2.864e-01  2.650e-01  0.79108
+## name27                                -6.996e-01  4.291e-01 -1.630e+00  0.10300
+## name28                                -5.663e-02  2.127e-01 -2.660e-01  0.79002
+## name29                                -1.625e-01  2.625e-01 -6.190e-01  0.53579
+## name3                                  2.722e-01  5.618e-01  4.840e-01  0.62808
+## name30                                -4.659e-01  3.313e-01 -1.406e+00  0.15960
+## name31                                -6.053e-01  5.533e-01 -1.094e+00  0.27398
+## name4                                 -5.883e-01  5.700e-01 -1.032e+00  0.30199
+## name5                                  1.352e-01  2.786e-01  4.850e-01  0.62746
+## name7                                 -7.541e-01  5.875e-01 -1.284e+00  0.19928
+## name8                                 -2.648e+00  1.258e+00 -2.106e+00  0.03524
+## nameOther                             -1.247e+00  8.390e-01 -1.486e+00  0.13726
+## year                                   1.164e-03  1.559e-02  7.500e-02  0.94051
+## selling_price                          1.965e-05  1.079e-05  1.821e+00  0.06855
+## km_driven                              8.787e-07  8.612e-07  1.020e+00  0.30760
+## RegionEast                            -3.243e-01  6.091e-01 -5.320e-01  0.59440
+## RegionSouth                           -6.871e-01  4.269e-01 -1.610e+00  0.10748
+## RegionWest                            -1.474e+13  2.509e+13 -5.870e-01  0.55700
+## State.or.ProvinceArizona               1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceArkansas              1.017e+00  4.316e-01  2.357e+00  0.01844
+## State.or.ProvinceCalifornia            1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceColorado              1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceConnecticut          -8.705e-01  7.589e-01 -1.147e+00  0.25139
+## State.or.ProvinceDelaware             -2.489e+01  1.170e+05  0.000e+00  0.99983
+## State.or.ProvinceDistrict of Columbia  1.445e+04  9.407e+06  2.000e-03  0.99877
+## State.or.ProvinceFlorida               4.485e-01  3.746e-01  1.197e+00  0.23115
+## State.or.ProvinceGeorgia               1.233e+00  3.863e-01  3.192e+00  0.00141
+## State.or.ProvinceIdaho                 1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceIllinois             -2.711e-01  2.995e-01 -9.050e-01  0.36545
+## State.or.ProvinceIndiana               5.863e-02  3.172e-01  1.850e-01  0.85337
+## State.or.ProvinceIowa                  8.388e-02  3.547e-01  2.360e-01  0.81305
+## State.or.ProvinceKansas                1.174e-01  3.601e-01  3.260e-01  0.74446
+## State.or.ProvinceKentucky              6.383e-01  4.989e-01  1.279e+00  0.20078
+## State.or.ProvinceLouisiana            -4.504e+15  9.790e+06 -4.600e+08  &lt; 2e-16
+## State.or.ProvinceMaine                -2.249e-01  6.357e-01 -3.540e-01  0.72345
+## State.or.ProvinceMaryland              2.152e-01  6.027e-01  3.570e-01  0.72103
+## State.or.ProvinceMassachusetts        -8.265e-01  6.795e-01 -1.216e+00  0.22388
+## State.or.ProvinceMichigan             -6.049e-01  3.285e-01 -1.841e+00  0.06556
+## State.or.ProvinceMinnesota            -4.783e-01  3.684e-01 -1.298e+00  0.19414
+## State.or.ProvinceMississippi          -2.315e+01  1.541e+04 -2.000e-03  0.99880
+## State.or.ProvinceMissouri             -3.353e+00  1.041e+00 -3.221e+00  0.00128
+## State.or.ProvinceMontana               1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceNebraska             -1.837e+00  7.726e-01 -2.378e+00  0.01740
+## State.or.ProvinceNevada                1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceNew Hampshire        -7.739e-01  8.205e-01 -9.430e-01  0.34557
+## State.or.ProvinceNew Jersey           -6.866e-01  6.369e-01 -1.078e+00  0.28108
+## State.or.ProvinceNew Mexico            1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceNew York              8.151e-01  5.717e-01  1.426e+00  0.15393
+## State.or.ProvinceNorth Carolina        5.813e-01  4.034e-01  1.441e+00  0.14955
+## State.or.ProvinceNorth Dakota         -2.538e+01  6.804e+04  0.000e+00  0.99970
+## State.or.ProvinceOhio                 -2.571e-01  5.833e-01 -4.410e-01  0.65935
+## State.or.ProvinceOklahoma              4.122e-01  3.675e-01  1.122e+00  0.26203
+## State.or.ProvinceOregon                1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvincePennsylvania         -1.189e-01  6.043e-01 -1.970e-01  0.84398
+## State.or.ProvinceRhode Island         -2.477e+01  9.198e+04  0.000e+00  0.99979
+## State.or.ProvinceSouth Carolina       -1.116e+00  6.838e-01 -1.632e+00  0.10259
+## State.or.ProvinceSouth Dakota         -2.336e+01  1.896e+05  0.000e+00  0.99990
+## State.or.ProvinceTennessee             4.998e-01  4.231e-01  1.181e+00  0.23747
+## State.or.ProvinceTexas                 2.585e-01  2.818e-01  9.170e-01  0.35892
+## State.or.ProvinceUtah                  1.474e+13  2.509e+13  5.870e-01  0.55700
+## State.or.ProvinceVermont              -8.348e-01  8.175e-01 -1.021e+00  0.30717
+## State.or.ProvinceVirginia             -1.286e+00  5.707e-01 -2.253e+00  0.02423
+## State.or.ProvinceWashington            1.474e+13  2.509e+13  5.870e-01  0.55700
 ## State.or.ProvinceWest Virginia                NA         NA         NA       NA
 ## State.or.ProvinceWisconsin                    NA         NA         NA       NA
-## State.or.ProvinceWyoming               1.088e+13  3.451e+13  3.150e-01  0.75263
-## CityCharlotte                         -9.599e-01  1.011e+00 -9.490e-01  0.34240
-## CityChicago                            9.666e-02  9.928e-01  9.700e-02  0.92244
-## CityDetroit                           -1.467e+00  8.465e-01 -1.733e+00  0.08302
-## CityLos Angeles                        4.504e+15  5.692e+06  7.912e+08  &lt; 2e-16
-## CityMiami                             -6.800e-01  1.031e+00 -6.600e-01  0.50945
-## CityNew York City                      6.222e+00  8.947e+00  6.950e-01  0.48676
-## CityOther                             -5.056e+00  6.552e-01 -7.717e+00 1.19e-14
-## CityPhiladelphia                      -1.086e+00  8.766e-01 -1.239e+00  0.21543
-## CitySeattle                           -8.606e-01  8.288e-01 -1.038e+00  0.29911
+## State.or.ProvinceWyoming               1.474e+13  2.509e+13  5.870e-01  0.55700
+## CityCharlotte                         -9.587e-01  1.013e+00 -9.460e-01  0.34398
+## CityChicago                            1.406e-01  9.926e-01  1.420e-01  0.88733
+## CityDetroit                           -1.468e+00  8.465e-01 -1.734e+00  0.08286
+## CityLos Angeles                        1.131e+01  3.692e+02  3.100e-02  0.97556
+## CityMiami                             -7.311e-01  1.027e+00 -7.120e-01  0.47671
+## CityNew York City                      1.077e+01  2.372e+03  5.000e-03  0.99638
+## CityOther                             -5.057e+00  6.567e-01 -7.700e+00 1.36e-14
+## CityPhiladelphia                      -1.081e+00  8.800e-01 -1.229e+00  0.21913
+## CitySeattle                           -8.377e-01  8.289e-01 -1.011e+00  0.31218
 ## CityWashington                                NA         NA         NA       NA
-## fuelDiesel                             8.646e-01  5.646e-01  1.531e+00  0.12569
-## fuelLPG                               -4.019e-02  8.769e-01 -4.600e-02  0.96345
-## fuelPetrol                             7.097e-01  5.533e-01  1.283e+00  0.19962
-## seller_typeIndividual                  7.448e-02  1.295e-01  5.750e-01  0.56517
-## seller_typeTrustmark_Dealer            7.497e-01  2.315e-01  3.238e+00  0.00120
-## transmissionManual                     8.918e-02  1.546e-01  5.770e-01  0.56398
-## ownerFourth_Above_Owner                6.112e-01  2.497e-01  2.448e+00  0.01437
-## ownerSecond_Owner                     -2.954e-02  1.009e-01 -2.930e-01  0.76969
-## ownerTest_Drive_Car                   -2.413e+01  1.495e+05  0.000e+00  0.99987
-## ownerThird_Owner                       1.940e-01  1.620e-01  1.198e+00  0.23098
-## mileage                               -2.732e-02  1.743e-02 -1.568e+00  0.11697
-## engine                                -6.313e-05  1.979e-04 -3.190e-01  0.74972
-## max_power                              4.452e-04  3.449e-03  1.290e-01  0.89731
-## Torque                                -1.419e-03  1.466e-03 -9.680e-01  0.33282
-## seats                                 -4.685e-02  6.422e-02 -7.290e-01  0.46571
+## fuelDiesel                             8.660e-01  5.645e-01  1.534e+00  0.12501
+## fuelLPG                               -3.816e-02  8.760e-01 -4.400e-02  0.96525
+## fuelPetrol                             7.111e-01  5.533e-01  1.285e+00  0.19871
+## seller_typeIndividual                  7.540e-02  1.294e-01  5.830e-01  0.56013
+## seller_typeTrustmark_Dealer            7.502e-01  2.315e-01  3.241e+00  0.00119
+## transmissionManual                     8.970e-02  1.544e-01  5.810e-01  0.56126
+## ownerFourth_Above_Owner                6.111e-01  2.494e-01  2.450e+00  0.01428
+## ownerSecond_Owner                     -2.948e-02  1.008e-01 -2.920e-01  0.76991
+## ownerTest_Drive_Car                   -2.423e+01  1.574e+05  0.000e+00  0.99988
+## ownerThird_Owner                       1.945e-01  1.618e-01  1.202e+00  0.22929
+## mileage                               -2.722e-02  1.742e-02 -1.563e+00  0.11804
+## engine                                -6.277e-05  1.976e-04 -3.180e-01  0.75076
+## max_power                              4.627e-04  3.443e-03  1.340e-01  0.89309
+## Torque                                -1.423e-03  1.462e-03 -9.740e-01  0.33019
+## seats                                 -4.670e-02  6.416e-02 -7.280e-01  0.46670
 ## age                                           NA         NA         NA       NA
 ##                                          
 ## (Intercept)                              
@@ -557,13 +561,13 @@ pre code {
 ## State.or.ProvinceIowa                    
 ## State.or.ProvinceKansas                  
 ## State.or.ProvinceKentucky                
-## State.or.ProvinceLouisiana               
+## State.or.ProvinceLouisiana            ***
 ## State.or.ProvinceMaine                   
 ## State.or.ProvinceMaryland                
 ## State.or.ProvinceMassachusetts           
 ## State.or.ProvinceMichigan             .  
 ## State.or.ProvinceMinnesota               
-## State.or.ProvinceMississippi          ***
+## State.or.ProvinceMississippi             
 ## State.or.ProvinceMissouri             ** 
 ## State.or.ProvinceMontana                 
 ## State.or.ProvinceNebraska             *  
@@ -593,7 +597,7 @@ pre code {
 ## CityCharlotte                            
 ## CityChicago                              
 ## CityDetroit                           .  
-## CityLos Angeles                       ***
+## CityLos Angeles                          
 ## CityMiami                                
 ## CityNew York City                        
 ## CityOther                             ***
@@ -622,8 +626,8 @@ pre code {
 ## (Dispersion parameter for binomial family taken to be 1)
 ## 
 ##     Null deviance: 6748.3  on 5929  degrees of freedom
-## Residual deviance: 4499.0  on 5831  degrees of freedom
-## AIC: 4697
+## Residual deviance: 4499.3  on 5831  degrees of freedom
+## AIC: 4697.3
 ## 
 ## Number of Fisher Scoring iterations: 25</code></pre>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict</span></span>
@@ -632,7 +636,7 @@ pre code {
 ## prediction from a rank-deficient fit may be misleading</code></pre>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(carpred)</span></code></pre></div>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.0000  0.1136  0.1696  0.2550  0.2669  1.0000</code></pre>
+##  0.0000  0.1069  0.1691  0.2543  0.2688  1.0000</code></pre>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>car_binary_pred <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(carpred <span class="sc">&gt;=</span> <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(car_binary_pred)</span></code></pre></div>
 <pre><code>## car_binary_pred
@@ -685,48 +689,64 @@ pre code {
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>knnmodel <span class="ot">&lt;-</span> <span class="fu">knnreg</span>(sold <span class="sc">~</span>., <span class="at">data =</span> car_train, <span class="at">k =</span> <span class="dv">5</span>)</span></code></pre></div>
 </div>
-</div>
-<div id="test-and-predict" class="section level1">
-<h1>Test and Predict</h1>
+<div id="test-and-predict" class="section level2">
+<h2>Test and Predict</h2>
 <div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>knnpredict <span class="ot">&lt;-</span> <span class="fu">predict</span>(knnmodel, <span class="at">newdata =</span> car_test)</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">postResample</span>(knnpredict, car_test<span class="sc">$</span>sold)</span></code></pre></div>
-<pre><code>##         RMSE     Rsquared          MAE 
-## 4.678151e-01 1.246926e-05 3.699701e-01</code></pre>
+<pre><code>##        RMSE    Rsquared         MAE 
+## 0.462040605 0.001967277 0.366241673</code></pre>
 </div>
-<div id="create-binary-predictions-from-probabilities" class="section level1">
-<h1>Create binary predictions from probabilities</h1>
+<div id="create-binary-predictions-from-probabilities" class="section level2">
+<h2>Create binary predictions from probabilities</h2>
 <div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>knn_binary_pred <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(knnpredict <span class="sc">&gt;=</span> <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span></code></pre></div>
 </div>
-<div id="evaluate-performance" class="section level1">
-<h1>Evaluate Performance</h1>
+<div id="evaluate-performance" class="section level2">
+<h2>Evaluate Performance</h2>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(<span class="fu">as.factor</span>(knn_binary_pred), <span class="fu">as.factor</span>(car_test<span class="sc">$</span>sold))</span></code></pre></div>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
 ## Prediction    0    1
-##          0 1330  423
-##          1  165   58
+##          0 1338  423
+##          1  157   58
 ##                                           
-##                Accuracy : 0.7024          
-##                  95% CI : (0.6817, 0.7225)
+##                Accuracy : 0.7065          
+##                  95% CI : (0.6859, 0.7265)
 ##     No Information Rate : 0.7566          
 ##     P-Value [Acc &gt; NIR] : 1               
 ##                                           
-##                   Kappa : 0.0125          
+##                   Kappa : 0.0192          
 ##                                           
 ##  Mcnemar&#39;s Test P-Value : &lt;2e-16          
 ##                                           
-##             Sensitivity : 0.8896          
+##             Sensitivity : 0.8950          
 ##             Specificity : 0.1206          
-##          Pos Pred Value : 0.7587          
-##          Neg Pred Value : 0.2601          
+##          Pos Pred Value : 0.7598          
+##          Neg Pred Value : 0.2698          
 ##              Prevalence : 0.7566          
-##          Detection Rate : 0.6731          
-##    Detection Prevalence : 0.8871          
-##       Balanced Accuracy : 0.5051          
+##          Detection Rate : 0.6771          
+##    Detection Prevalence : 0.8912          
+##       Balanced Accuracy : 0.5078          
 ##                                           
 ##        &#39;Positive&#39; Class : 0               
 ## </code></pre>
+</div>
+</div>
+<div id="build-ann-model" class="section level1">
+<h1>Build ANN Model</h1>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">#library(neuralnet)</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="co">#car_ann &lt;- neuralnet(sold ~., data = car_train, hidden = 1)</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co">#Plot</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co">#plot(car_ann)</span></span></code></pre></div>
+<div id="predict-and-test" class="section level2">
+<h2>Predict and Test</h2>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ann_pred &lt;- compute(car_ann, car_test[, c(&quot;year&quot;, &quot;selling_price&quot;, &quot;km_driven&quot;, &quot;fuel&quot;, &quot;transmission&quot;, &quot;owner&quot;, &quot;age&quot;)])</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co">#car_binary_ann_pred &lt;- ifelse(ann_pred$net.result &gt;= 0.5, 1, 0)</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">#confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))</span></span></code></pre></div>
+</div>
 </div>
 
 

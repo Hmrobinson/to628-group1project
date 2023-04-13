@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## What Data Will You Use?
 This dataset details used car data. The Y variable is whether or not the car is sold. The X variables include attributes like car type, mileage, make, and model, among other attributes.
 ```{r}
-car <- read.csv("Car_data.csv")
+car <- read.csv("Car_data (1).csv")
 ```
 
 ## Business Question
@@ -108,20 +108,20 @@ confusionMatrix(as.factor(knn_binary_pred), as.factor(car_test$sold))
 
 # Build ANN Model
 ```{r}
-library(neuralnet)
-car_ann <- neuralnet(sold ~., data = car_train, hidden = 1)
+#library(neuralnet)
+#car_ann <- neuralnet(sold ~., data = car_train, hidden = 1)
 
 #Plot
-plot(car_ann)
+#plot(car_ann)
 
 ```
 
 ## Predict and Test
 ```{r}
-ann_pred <- compute(car_ann, car_test[, c("year", "selling_price", "km_driven", "fuel", "transmission", "owner", "age")])
+#ann_pred <- compute(car_ann, car_test[, c("year", "selling_price", "km_driven", "fuel", "transmission", "owner", "age")])
 
-car_binary_ann_pred <- ifelse(ann_pred$net.result >= 0.5, 1, 0)
+#car_binary_ann_pred <- ifelse(ann_pred$net.result >= 0.5, 1, 0)
 
-confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
+#confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
 ```
 
