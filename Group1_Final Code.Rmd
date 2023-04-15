@@ -1,0 +1,218 @@
+---
+title: 'Deliverable #1 Project Proposal'
+author: "Group #1: Holland Robinson, Vu Nguyen, Kathryn Mioduszewski, Pranav Patil, Sreechandana Anumolu, Yash Ghate"
+date: "4/14/2023"
+output: 
+  html_document:
+    toc: true
+    theme: readable
+    highlight: tango
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What Data Will You Use?
+This dataset details used car data. The Y variable is whether or not the car is sold. The X variables include attributes like car type, mileage, make, and model, among other attributes.
+
+```{r}
+car <- read.csv("Car_data (1).csv")
+```
+
+## Business Question
+With this data, you can build an algorithm to predict what attributes influence the sale of a car. This is relevant to used car dealerships when choosing whether you would accept this car from the seller to subsequently sell. 
+
+## Preliminary Exploration and Cleaning of Data
+```{r}
+car$Sales_ID <- NULL
+car$age <- max(car$year) - car$year
+car$name <- as.factor(car$name)
+car$State <- as.factor(car$State)
+car$Region <- as.factor(car$Region)
+car$seller_type <- as.factor(car$seller_type)
+car$transmission <- as.factor(car$transmission)
+car$fuel <- as.factor(car$fuel)
+car$owner <- as.factor(car$owner)
+car$sold <- as.factor(car$sold)
+car$name <- ifelse(car$name == "Opel" | car$name == "Ashok" | car$name == "MG" | car$name == "Daewoo" | car$name == "Kia" | car$name == "Ambassador" | car$name == "Isuzu" | car$name == "Land" | car$name == "Force","Other", car$name)
+
+car$City <- ifelse(car$City == "New York City" | car$City == "Los Angeles" | car$City == "Seattle" | car$City == "Chicago" | car$City == "Boston" | car$City == "Washington" | car$City == "Philadelphia" | car$City == "Charlotte" | car$City == "Miami" | car$City == "Detroit"  , car$City, "Other")
+
+carv1 <- as.data.frame(model.matrix(~.-1,car))
+
+str(car)
+summary(carv1)
+
+```
+
+#Normalize Data 
+```{r}
+normalize <- function(x){
+  return((x-min(x))/(max(x)-min(x)))
+}
+
+car_norm <- as.data.frame(lapply(carv1, normalize))
+
+summary(car_norm)
+
+```
+
+#Split Data 
+```{r}
+
+set.seed(12345)
+test_rows <- sample(1:nrow(car_norm), 0.5*nrow(car_norm))
+car_test <- car_norm[test_rows, ]
+car_train <- car_norm[-test_rows, ]
+cardt_test<-car[test_rows,]
+cardt_train<-car[-test_rows,]
+
+summary(car_train)
+
+```
+
+#Regression Model
+```{r}
+
+# %%%%%  MODEL %%%%%% 
+
+basemodel <- glm(soldY ~., data = car_train, family = "binomial")
+
+summary(basemodel)
+
+# %%%%% Predict %%%%%
+
+library(caret)
+carpred <- predict(basemodel, car_test, type = "response")
+car_binary_pred <- ifelse(carpred >= 0.5, 1, 0)
+table(car_binary_pred)
+car_test$sold <- ifelse(car_test$sold, 1, 0)
+confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
+
+```
+
+
+# KNN Model
+```{r}
+
+#Data Cleaning & creating test and train 
+carknn_test <- car_norm[test_rows,-match("soldY",names(car_norm))]
+carknn_train <- car_norm[-test_rows,-match("soldY",names(car_norm))]
+carknn_test_labels <- car_norm[test_rows,"soldY"]
+carknn_train_labels <- car_norm[-test_rows,"soldY"]
+
+#Build Model
+library(class)
+knn_model <- knn(carknn_train,carknn_test,carknn_train_labels,k=40,prob= TRUE)
+
+## Evaluate Model
+library(caret)
+confusionMatrix(as.factor(knn_model), as.factor(carknn_test_labels),positive = "1")
+
+```
+
+# ANN Model
+```{r}
+library(neuralnet)
+
+#BUILDING THE MODEL
+
+model_ann1 <- neuralnet(soldY ~., data = car_train, hidden = 5,2) 
+plot(model_ann1)
+saveRDS(model_ann1, file = 'model_ann1.rds')
+
+# Predicting the ANN model 
+model_ann_1predict <- predict(model_ann1,car_test)
+model_ann1bin <- ifelse(model_ann_1predict >= 0.25,1,0)
+
+#EVALUATING 
+library(caret)
+confusionMatrix(as.factor(model_ann1bin), as.factor(car_test$soldY), positive = "1")
+
+```
+
+# DECISION TREE
+```{r}
+
+library(C50)
+
+#BUILDING THE MODEL
+set.seed(12345)
+cartree <- C5.0(as.factor(sold)~., data = cardt_train)
+plot(cartree)
+summary(cartree)
+
+#PREDICTING THE MODEL
+cartreepred <- predict(cartree, cardt_test)
+
+#EVALUATING THE MODEL
+confusionMatrix(as.factor(cartreepred),as.factor(cardt_test$sold), positive = "Y")
+
+```
+
+# RANDOM FOREST
+```{r}
+library(randomForest)
+#Predict the RF Model 
+carforest <- randomForest(as.factor(soldY) ~. , data = car_train)
+summary(carforest)
+randomForest::varImpPlot(carforest)
+
+#Evaluate and Predict 
+carrfpredict <- predict(carforest, car_test)
+summary(carrfpredict)
+confusionMatrix(as.factor(carrfpredict), as.factor(car_test$soldY), positive = "1")
+
+```
+
+#Stacked Model 
+```{r}
+
+stacked_car <- data.frame(log_pred = carpred, KNN = knn_model, ANN = model_ann_1predict, DT_pred = cartreepred, rf_pred = carrfpredict,y = car_test$soldY)
+
+summary(stacked_car)
+
+```
+
+#Test and Train
+```{r}
+
+set.seed(1234)
+test_set1 <- sample(1:nrow(stacked_car), 0.3*nrow(stacked_car)) 
+cars_train <- stacked_car[-test_set1, ]
+cars_test <- stacked_car[test_set1, ]
+
+```
+
+# Building Stacked Model's Decision tree
+
+```{r}
+
+library(C50)
+stackedtree <- C5.0(as.factor(y) ~., data = cars_train)
+plot(stackedtree)
+
+```
+
+#Predict and Evaluate Model 
+```{r}
+library(caret)
+stackedpredict <- predict(stackedtree,cars_test)
+confusionMatrix(as.factor(stackedpredict), as.factor(cars_test$y), positive = "1")
+
+```
+
+# Cost Matrix 
+```{r}
+error_cost = matrix(c(0,1,4,0), nrow =2) 
+error_cost
+
+errormodel <- C5.0(as.factor(soldY)~., data = car_train,costs = error_cost)
+prederror <- predict(errormodel, car_test)
+summary(prederror)
+confusionMatrix(as.factor(prederror), as.factor(car_test$soldY), positive = "1")
+
+```
+
