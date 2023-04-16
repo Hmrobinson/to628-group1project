@@ -59,50 +59,42 @@ summary(car_norm)
 
 ```
 
-#Split Data 
+# Split Data 
 ```{r}
 
 set.seed(12345)
 test_rows <- sample(1:nrow(car_norm), 0.5*nrow(car_norm))
 car_test <- car_norm[test_rows, ]
 car_train <- car_norm[-test_rows, ]
-cardt_test<-car[test_rows,]
-cardt_train<-car[-test_rows,]
 
-summary(car_train)
-
-```
-
-#Regression Model
-```{r}
-
-# %%%%%  MODEL %%%%%% 
-
-basemodel <- glm(soldY ~., data = car_train, family = "binomial")
-
-summary(basemodel)
-
-# %%%%% Predict %%%%%
-
-library(caret)
-carpred <- predict(basemodel, car_test, type = "response")
-car_binary_pred <- ifelse(carpred >= 0.5, 1, 0)
-table(car_binary_pred)
-car_test$sold <- ifelse(car_test$sold, 1, 0)
-confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$sold))
-
-```
-
-
-# KNN Model
-```{r}
-
-#Data Cleaning & creating test and train 
+#Data Cleaning & creating test and train for KNN
 carknn_test <- car_norm[test_rows,-match("soldY",names(car_norm))]
 carknn_train <- car_norm[-test_rows,-match("soldY",names(car_norm))]
 carknn_test_labels <- car_norm[test_rows,"soldY"]
 carknn_train_labels <- car_norm[-test_rows,"soldY"]
 
+#Data Cleaning and creating test and train for Decision Tree
+test_set <- sample(1:nrow(car), 0.5*nrow(car))
+cardt_train <- car[-test_rows, ]
+cardt_test <- car[test_rows, ]
+```
+# Regression Model
+```{r}
+
+# %%%%%  MODEL %%%%%% 
+basemodel <- glm(soldY ~., data = car_train, family = "binomial")
+#summary(basemodel)
+
+# %%%%% Predict %%%%%
+library(caret)
+carpred <- predict(basemodel, car_test, type = "response")
+car_binary_pred <- ifelse(carpred >= 0.5, 1, 0)
+#table(car_binary_pred)
+confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$soldY))
+
+```
+# KNN Model
+```{r}
 #Build Model
 library(class)
 knn_model <- knn(carknn_train,carknn_test,carknn_train_labels,k=40,prob= TRUE)
@@ -112,13 +104,11 @@ library(caret)
 confusionMatrix(as.factor(knn_model), as.factor(carknn_test_labels),positive = "1")
 
 ```
-
 # ANN Model
 ```{r}
 library(neuralnet)
 
 #BUILDING THE MODEL
-
 model_ann1 <- neuralnet(soldY ~., data = car_train, hidden = 5,2) 
 plot(model_ann1)
 saveRDS(model_ann1, file = 'model_ann1.rds')
@@ -135,7 +125,6 @@ confusionMatrix(as.factor(model_ann1bin), as.factor(car_test$soldY), positive = 
 
 # DECISION TREE
 ```{r}
-
 library(C50)
 
 #BUILDING THE MODEL
@@ -149,7 +138,6 @@ cartreepred <- predict(cartree, cardt_test)
 
 #EVALUATING THE MODEL
 confusionMatrix(as.factor(cartreepred),as.factor(cardt_test$sold), positive = "Y")
-
 ```
 
 # RANDOM FOREST
@@ -166,53 +154,191 @@ summary(carrfpredict)
 confusionMatrix(as.factor(carrfpredict), as.factor(car_test$soldY), positive = "1")
 
 ```
-
-#Stacked Model 
+# Stacked Model 
 ```{r}
-
+# COMBINING MODELS
 stacked_car <- data.frame(log_pred = carpred, KNN = knn_model, ANN = model_ann_1predict, DT_pred = cartreepred, rf_pred = carrfpredict,y = car_test$soldY)
 
-summary(stacked_car)
+#summary(stacked_car)
 
-```
-
-#Test and Train
-```{r}
-
+# SPLITING THE DATA
 set.seed(1234)
 test_set1 <- sample(1:nrow(stacked_car), 0.3*nrow(stacked_car)) 
-cars_train <- stacked_car[-test_set1, ]
-cars_test <- stacked_car[test_set1, ]
+cars_train_st <- stacked_car[-test_set1, ]
+cars_test_st <- stacked_car[test_set1, ]
 
 ```
-
 # Building Stacked Model's Decision tree
-
 ```{r}
 
 library(C50)
-stackedtree <- C5.0(as.factor(y) ~., data = cars_train)
+stackedtree <- C5.0(as.factor(y) ~., data = cars_train_st)
 plot(stackedtree)
 
-```
-
 #Predict and Evaluate Model 
-```{r}
 library(caret)
-stackedpredict <- predict(stackedtree,cars_test)
-confusionMatrix(as.factor(stackedpredict), as.factor(cars_test$y), positive = "1")
+stackedpredict <- predict(stackedtree,cars_test_st)
+confusionMatrix(as.factor(stackedpredict), as.factor(cars_test_st$y), positive = "1")
 
 ```
-
 # Cost Matrix 
 ```{r}
 error_cost = matrix(c(0,1,4,0), nrow =2) 
 error_cost
 
-errormodel <- C5.0(as.factor(soldY)~., data = car_train,costs = error_cost)
-prederror <- predict(errormodel, car_test)
+errormodel <- C5.0(as.factor(y)~., data = cars_train_st,costs = error_cost)
+prederror <- predict(errormodel, cars_test_st)
 summary(prederror)
-confusionMatrix(as.factor(prederror), as.factor(car_test$soldY), positive = "1")
+confusionMatrix(as.factor(prederror), as.factor(cars_test_st$y), positive = "1")
+
+```
+# IMPROVED DECISION TREE
+```{r}
+library(caret)
+set.seed(12345)
+ctrl <- trainControl(method = "cv", number = 10, selectionFunction = "oneSE")
+
+#ctrl <- trainControl(selectionFunction = "oneSE")
+grid <- expand.grid(.model="tree", .trials= c(1,5,10,15,20), .winnow="FALSE")
+
+train_model_dt <- train(as.factor(soldY) ~., data = car_train, method="C5.0", metric="Kappa", trControl=ctrl, tuneGrid= grid)
+
+predict_train_dt <- predict(train_model_dt, car_test)
+confusionMatrix(as.factor(predict_train_dt), as.factor(car_test$soldY), positive="1")
+```
+# KNN TUNING  
+```{r}
+library(caret)
+
+# Define the tuning grid
+grid_knn <- expand.grid(k = seq(5,60,5))
+
+# Define the training control
+ctrl_knn <- trainControl(method = "cv", number = 4, selectionFunction = "oneSE")
+
+# Train the KNN model
+set.seed(12345)
+train_model_knn <- train(as.factor(soldY)~ ., data = car_train, method = "knn", metric="Kappa", trControl = ctrl_knn, tuneGrid = grid_knn, preProcess=c("center","scale"))
+
+#train_model_knn
+#summary(train_model_knn)
+
+# Make predictions on the test set
+predict_train_knn <- predict(train_model_knn, car_test)
+
+# Generate confusion matrix
+confusionMatrix(as.factor(predict_train_knn), as.factor(car_test$soldY), positive = "1")
+```
+#RANDOM FOREST TUNING 
+```{r}
+# Define the training control
+ctrl_rf <- trainControl(method = "cv", number = 3, selectionFunction = "oneSE")
+
+# Define the tuning grid
+grid_rf <- expand.grid(.mtry = c(2, 4, 8))
+
+set.seed(12345)
+train_model_rf <- train(as.factor(soldY) ~ ., data = car_train, method = "rf", metric = "Kappa", trControl = ctrl_rf, tuneGrid = grid_rf)
+
+train_model_rf
+
+predict_train_rf <- predict(train_model_rf, car_test)
+
+confusionMatrix(as.factor(predict_train_rf), as.factor(car_test$soldY), positive = "1")
+```
+## ANN tuning
+```{r}
+midmodel <- neuralnet(soldY ~ ., data = car_train, hidden = 1, stepmax = 1e6)
+
+plot(midmodel)
+
+midpred <- predict(midmodel, car_test)
+midbin <- ifelse(midpred >= .5, 1, 0)
+
+confusionMatrix(as.factor(midbin), as.factor(car_test$soldY), positive = "1")
+
+```
+# Logistics Regression Tuning 
+```{r}
+library(caret)
+
+# Define the training control
+ctrl_lr <- trainControl(method = "cv", number = 10, selectionFunction = "oneSE")
+
+# Define the tuning grid
+grid_lr <- expand.grid(
+  .alpha = c(0, 0.25, 0.5, 0.75, 1),
+  .lambda = c(0.0001, 0.001, 0.01, 0.1, 1)
+)
+
+# Train the logistic regression model
+set.seed(12345)
+train_model_lr <- train(as.factor(soldY) ~ ., data = car_train, method = "glmnet", family = "binomial", metric = "Kappa", trControl = ctrl_lr, tuneGrid = grid_lr, preProcess = c("center", "scale"))
+
+# Make predictions on the test set
+predict_train_lr <- predict(train_model_lr, car_test)
+
+# Generate confusion matrix
+confusionMatrix(as.factor(predict_train_lr), as.factor(car_test$soldY), positive = "1")
 
 ```
 
+## Combining Tunes Models
+
+# Creating Combined-Tuned Data Frame
+```{r}
+# Logistic Regression - predict_train_lr
+# KNN - predict_train_knn
+# ANN - midpred
+# Decision Tree - predict_train_dt
+# randomForest - predict_train_rf
+# Combined Model - all of them together
+
+combined_tune_model <- data.frame(predict_train_lr, predict_train_knn, midpred, predict_train_dt,  predict_train_rf,carknn_test_labels)
+
+colnames(combined_tune_model) <- c("Logistical Regression", "KNN", "ANN", " Decision Tree", "Random Forest", "actuals")
+
+summary(combined_tune_model)
+
+```
+
+#Test and Train the Combined-Tuned
+```{r}
+set.seed(12345)
+test_combined_tune <- sample(1:nrow(combined_tune_model), 0.3*nrow(combined_tune_model))
+
+# Create a train set and test set
+#First the predictors - all columns except the actuals column
+combined_tune_test <- combined_tune_model[test_combined_tune, -match("actuals",names(combined_tune_model))]
+combined_tune_train <- combined_tune_model[-test_combined_tune, -match("actuals",names(combined_tune_model))]
+
+#Now the response (aka Labels) - only the actuals column
+combined_tune_train_labels <- combined_tune_model[-test_combined_tune, "actuals"]
+combined_tune_test_labels <- combined_tune_model[test_combined_tune, "actuals"]
+
+```
+
+#Decision Tree with Combined-Tuned Predictions
+```{r}
+combined_tune_tree <- C5.0(as.factor(combined_tune_train_labels) ~., data = combined_tune_train)
+
+plot(combined_tune_tree)
+
+summary(combined_tune_tree)
+
+combined_tune_pred <- predict(combined_tune_tree, combined_tune_test)
+
+confusionMatrix(as.factor(combined_tune_pred), as.factor(combined_tune_test_labels), positive = "1")
+
+```
+
+## Cost Matrix of the Combined-Tuned Model
+```{r}
+error_cost <- matrix(c(0, 1, 10, 0), nrow = 2)
+
+#error_cost
+
+error_tune_model <- C5.0(as.factor(combined_tune_train_labels) ~ ., data = combined_tune_train, costs = error_cost)
+error_tune_pred <- predict(error_tune_model, combined_tune_test)
+confusionMatrix(as.factor(error_tune_pred), as.factor(combined_tune_test_labels), positive = "1")
+```
