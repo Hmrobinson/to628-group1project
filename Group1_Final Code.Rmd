@@ -1,5 +1,5 @@
 ---
-title: 'Deliverable #1 Project Proposal'
+title: 'Final Project - Will This Car Sell? '
 author: "Group #1: Holland Robinson, Vu Nguyen, Kathryn Mioduszewski, Pranav Patil, Sreechandana Anumolu, Yash Ghate"
 date: "4/14/2023"
 output: 
@@ -7,25 +7,26 @@ output:
     toc: true
     theme: readable
     highlight: tango
-    code_folding: show
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## What Data Will You Use?
-This dataset details used car data. The Y variable is whether or not the car is sold. The X variables include attributes like car type, mileage, make, and model, among other attributes.
+# Introduction
+The data set we are using details used car data. The Y variable indicates whether or not a car is sold. The X variables include attributes such as car type, mileage, make, model, and other attributes. With this data, we are building an algorithm to predict the attributes that influence the sale of a car. This is relevant to used car dealerships when choosing to accept a car from a seller to subsequently sell to another buyer. 
+
+# Business Questions
+The business questions we're answering are: 
+1. Which cars will sell on my used car lot? 
+2. Can I predict which types of cars I should be purchasing to re-sell?
+
+# Preliminary Exploration and Cleaning of Data
 
 ```{r}
 car <- read.csv("Car_data (1).csv")
-```
 
-## Business Question
-With this data, you can build an algorithm to predict what attributes influence the sale of a car. This is relevant to used car dealerships when choosing whether you would accept this car from the seller to subsequently sell. 
-
-## Preliminary Exploration and Cleaning of Data
-```{r}
 car$Sales_ID <- NULL
 car$age <- max(car$year) - car$year
 car$name <- as.factor(car$name)
@@ -44,10 +45,10 @@ carv1 <- as.data.frame(model.matrix(~.-1,car))
 
 str(car)
 summary(carv1)
-
 ```
 
-#Normalize Data 
+## Normalize Data 
+
 ```{r}
 normalize <- function(x){
   return((x-min(x))/(max(x)-min(x)))
@@ -56,132 +57,172 @@ normalize <- function(x){
 car_norm <- as.data.frame(lapply(carv1, normalize))
 
 summary(car_norm)
-
 ```
 
-# Split Data 
+## Split Data
+
 ```{r}
 
 set.seed(12345)
 test_rows <- sample(1:nrow(car_norm), 0.5*nrow(car_norm))
+test_rows_dt <- sample(1:nrow(car),0.5*nrow(car))
 car_test <- car_norm[test_rows, ]
 car_train <- car_norm[-test_rows, ]
 
-#Data Cleaning & creating test and train for KNN
+# Data Cleaning & creating test and train for KNN
 carknn_test <- car_norm[test_rows,-match("soldY",names(car_norm))]
 carknn_train <- car_norm[-test_rows,-match("soldY",names(car_norm))]
 carknn_test_labels <- car_norm[test_rows,"soldY"]
 carknn_train_labels <- car_norm[-test_rows,"soldY"]
 
-#Data Cleaning and creating test and train for Decision Tree
-test_set <- sample(1:nrow(car), 0.5*nrow(car))
-cardt_train <- car[-test_rows, ]
-cardt_test <- car[test_rows, ]
+# Data Cleaning and creating test and train for Decision Tree
+cardt_train <- car[-test_rows_dt, ]
+cardt_test <- car[test_rows_dt, ]
 ```
-# Regression Model
+
+# Prediction Models 
+
+## Logistic Regression Model
 ```{r}
 
-# %%%%%  MODEL %%%%%% 
+# Build Model
 basemodel <- glm(soldY ~., data = car_train, family = "binomial")
-#summary(basemodel)
+summary(basemodel)
 
-# %%%%% Predict %%%%%
+# Predict Model
 library(caret)
 carpred <- predict(basemodel, car_test, type = "response")
 car_binary_pred <- ifelse(carpred >= 0.5, 1, 0)
-#table(car_binary_pred)
-confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$soldY))
 
+#table(car_binary_pred)
+a<-confusionMatrix(as.factor(car_binary_pred), as.factor(car_test$soldY))
+kappa_Regression<- a$overall["Kappa"]
+print(kappa_Regression)
+print(a)
 ```
-# KNN Model
+
+<span style="color: magenta;">The matrix above shows that the logistic regression model predicted `r a$table[2,2]` cars will be sold successfully, and that we should avoid buying `r a$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r a$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r a$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## KNN Model
 ```{r}
-#Build Model
+# Build Model
 library(class)
 knn_model <- knn(carknn_train,carknn_test,carknn_train_labels,k=40,prob= TRUE)
 
-## Evaluate Model
+# Evaluate Model
 library(caret)
-confusionMatrix(as.factor(knn_model), as.factor(carknn_test_labels),positive = "1")
+b<-confusionMatrix(as.factor(knn_model), as.factor(carknn_test_labels),positive = "1")
 
+kappa_KNN<-b$overall["Kappa"]
+print(kappa_KNN)
+print(b)
 ```
-# ANN Model
+
+<span style="color: magenta;">The matrix above shows that the KNN Model predicted `r b$table[2,2]` cars will be sold successfully, and that we should avoid buying `r b$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r b$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r b$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## ANN Model
 ```{r}
 library(neuralnet)
 
-#BUILDING THE MODEL
+# Build Model
 model_ann1 <- neuralnet(soldY ~., data = car_train, hidden = 5,2) 
 plot(model_ann1)
 saveRDS(model_ann1, file = 'model_ann1.rds')
 
-# Predicting the ANN model 
+# Predict Model 
 model_ann_1predict <- predict(model_ann1,car_test)
 model_ann1bin <- ifelse(model_ann_1predict >= 0.25,1,0)
 
-#EVALUATING 
+# Evaluate Model 
 library(caret)
-confusionMatrix(as.factor(model_ann1bin), as.factor(car_test$soldY), positive = "1")
-
+c<-confusionMatrix(as.factor(model_ann1bin), as.factor(car_test$soldY), positive = "1")
+kappa_ANN<- c$overall["Kappa"]
+print(kappa_ANN)
+print(c)
 ```
 
-# DECISION TREE
+<span style="color: magenta;">The matrix above shows that the ANN Model predicted `r c$table[2,2]` cars will be sold successfully, and that we should avoid buying `r c$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r c$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r c$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## Decision Tree
 ```{r}
 library(C50)
 
-#BUILDING THE MODEL
+# Build Model
 set.seed(12345)
 cartree <- C5.0(as.factor(sold)~., data = cardt_train)
 plot(cartree)
 summary(cartree)
 
-#PREDICTING THE MODEL
+# Predict Model
 cartreepred <- predict(cartree, cardt_test)
+summary(cartreepred)
 
-#EVALUATING THE MODEL
-confusionMatrix(as.factor(cartreepred),as.factor(cardt_test$sold), positive = "Y")
+# Evaluate Model
+d<- confusionMatrix(as.factor(cartreepred),as.factor(cardt_test$sold), positive = "Y")
+
+kappa_DecisionTree<- d$overall["Kappa"]
+print(kappa_DecisionTree)
+print(d)
 ```
 
-# RANDOM FOREST
+<span style="color: magenta;">The matrix above shows that the Decision Tree predicted `r d$table[2,2]` cars will be sold successfully, and that we should avoid buying `r d$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r d$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r d$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## Random Forest
 ```{r}
 library(randomForest)
-#Predict the RF Model 
+
+# Predict Model 
 carforest <- randomForest(as.factor(soldY) ~. , data = car_train)
 summary(carforest)
 randomForest::varImpPlot(carforest)
 
-#Evaluate and Predict 
+# Evaluate and Predict 
 carrfpredict <- predict(carforest, car_test)
 summary(carrfpredict)
-confusionMatrix(as.factor(carrfpredict), as.factor(car_test$soldY), positive = "1")
-
+e<- confusionMatrix(as.factor(carrfpredict), as.factor(car_test$soldY), positive = "1")
+kappa_RandomForest<-e$overall["Kappa"]
+print(kappa_RandomForest)
+print(e)
 ```
-# Stacked Model 
+
+<span style="color: magenta;">The matrix above shows that the Random Forest predicted `r e$table[2,2]` cars will be sold successfully, and that we should avoid buying `r e$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r e$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r e$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+# Stacked Model
+
 ```{r}
-# COMBINING MODELS
+# Combine Models
 stacked_car <- data.frame(log_pred = carpred, KNN = knn_model, ANN = model_ann_1predict, DT_pred = cartreepred, rf_pred = carrfpredict,y = car_test$soldY)
 
-#summary(stacked_car)
+summary(stacked_car)
 
-# SPLITING THE DATA
+# Split Data
 set.seed(1234)
 test_set1 <- sample(1:nrow(stacked_car), 0.3*nrow(stacked_car)) 
 cars_train_st <- stacked_car[-test_set1, ]
 cars_test_st <- stacked_car[test_set1, ]
-
 ```
-# Building Stacked Model's Decision tree
-```{r}
 
+## Stacked Model Decision tree
+```{r}
 library(C50)
+
 stackedtree <- C5.0(as.factor(y) ~., data = cars_train_st)
 plot(stackedtree)
 
-#Predict and Evaluate Model 
+# Predict and Evaluate Model 
 library(caret)
 stackedpredict <- predict(stackedtree,cars_test_st)
-confusionMatrix(as.factor(stackedpredict), as.factor(cars_test_st$y), positive = "1")
+f<- confusionMatrix(as.factor(stackedpredict), as.factor(cars_test_st$y), positive = "1")
 
+kappa_StackedModelDT<-f$overall["Kappa"]
+print(kappa_StackedModelDT)
+print(f)
 ```
-# Cost Matrix 
+
+<span style="color: magenta;">The matrix above shows that the Stacked Model Decision Tree predicted `r f$table[2,2]` cars will be sold successfully, and that we should avoid buying `r f$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r f$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r f$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+
+## Cost Matrix 
 ```{r}
 error_cost = matrix(c(0,1,4,0), nrow =2) 
 error_cost
@@ -189,10 +230,16 @@ error_cost
 errormodel <- C5.0(as.factor(y)~., data = cars_train_st,costs = error_cost)
 prederror <- predict(errormodel, cars_test_st)
 summary(prederror)
-confusionMatrix(as.factor(prederror), as.factor(cars_test_st$y), positive = "1")
-
+g<-confusionMatrix(as.factor(prederror), as.factor(cars_test_st$y), positive = "1")
+kappa_InitialCostMatrix<-g$overall["Kappa"]
+print(kappa_InitialCostMatrix)
+print(g)
 ```
-# IMPROVED DECISION TREE
+
+<span style="color: magenta;">The generated matrix shows that the Cost Matrix predicted `r g$table[2,2]` cars will be sold successfully, and that we should avoid buying `r g$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r g$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r g$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+
+## Improved Decsion Tree
 ```{r}
 library(caret)
 set.seed(12345)
@@ -204,9 +251,18 @@ grid <- expand.grid(.model="tree", .trials= c(1,5,10,15,20), .winnow="FALSE")
 train_model_dt <- train(as.factor(soldY) ~., data = car_train, method="C5.0", metric="Kappa", trControl=ctrl, tuneGrid= grid)
 
 predict_train_dt <- predict(train_model_dt, car_test)
-confusionMatrix(as.factor(predict_train_dt), as.factor(car_test$soldY), positive="1")
+h<-confusionMatrix(as.factor(predict_train_dt), as.factor(car_test$soldY), positive="1")
+
+kappa_ImprovedDT<-h$overall["Kappa"]
+print(kappa_ImprovedDT)
+print(h)
 ```
-# KNN TUNING  
+
+<span style="color: magenta;">The generated matrix shows that the Improved Decision Tree predicted `r h$table[2,2]` cars will be sold successfully, and that we should avoid buying `r h$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r h$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r h$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+# Tuning
+
+## KNN Tuning  
 ```{r}
 library(caret)
 
@@ -216,20 +272,27 @@ grid_knn <- expand.grid(k = seq(5,60,5))
 # Define the training control
 ctrl_knn <- trainControl(method = "cv", number = 4, selectionFunction = "oneSE")
 
-# Train the KNN model
+# Train KNN model
 set.seed(12345)
 train_model_knn <- train(as.factor(soldY)~ ., data = car_train, method = "knn", metric="Kappa", trControl = ctrl_knn, tuneGrid = grid_knn, preProcess=c("center","scale"))
 
 #train_model_knn
-#summary(train_model_knn)
+summary(train_model_knn)
 
 # Make predictions on the test set
 predict_train_knn <- predict(train_model_knn, car_test)
 
 # Generate confusion matrix
-confusionMatrix(as.factor(predict_train_knn), as.factor(car_test$soldY), positive = "1")
+i<- confusionMatrix(as.factor(predict_train_knn), as.factor(car_test$soldY), positive = "1")
+
+Kappa_TunedKNN<-i$overall["Kappa"]
+print(Kappa_TunedKNN)
+print(i)
 ```
-#RANDOM FOREST TUNING 
+
+<span style="color: magenta;">The generated matrix shows that the KNN Tuned Model predicted `r i$table[2,2]` cars will be sold successfully, and that we should avoid buying `r i$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r i$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r i$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## Random Forest Tuning  
 ```{r}
 # Define the training control
 ctrl_rf <- trainControl(method = "cv", number = 3, selectionFunction = "oneSE")
@@ -244,9 +307,16 @@ train_model_rf
 
 predict_train_rf <- predict(train_model_rf, car_test)
 
-confusionMatrix(as.factor(predict_train_rf), as.factor(car_test$soldY), positive = "1")
+j<-confusionMatrix(as.factor(predict_train_rf), as.factor(car_test$soldY), positive = "1")
+
+kappa_TunedRandomForest<-j$overall["Kappa"]
+print(kappa_TunedRandomForest)
+print(j)
 ```
-## ANN tuning
+
+<span style="color: magenta;">The generated matrix shows that the Random Forest Tuned Model predicted `r j$table[2,2]` cars will be sold successfully, and that we should avoid buying `r j$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r j$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r j$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## ANN Tuning
 ```{r}
 midmodel <- neuralnet(soldY ~ ., data = car_train, hidden = 1, stepmax = 1e6)
 
@@ -255,10 +325,16 @@ plot(midmodel)
 midpred <- predict(midmodel, car_test)
 midbin <- ifelse(midpred >= .5, 1, 0)
 
-confusionMatrix(as.factor(midbin), as.factor(car_test$soldY), positive = "1")
+k<-confusionMatrix(as.factor(midbin), as.factor(car_test$soldY), positive = "1")
 
+kappa_TunedANN<- k$overall["Kappa"]
+print(kappa_TunedANN)
+print(k)
 ```
-# Logistics Regression Tuning 
+
+<span style="color: magenta;">The generated matrix shows that the ANN Tuned Model successfully predicted `r k$table[2,2]` cars will be sold successfully, and that we should avoid buying `r k$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r k$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r k$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+## Logistic Regression Tuning 
 ```{r}
 library(caret)
 
@@ -278,14 +354,21 @@ train_model_lr <- train(as.factor(soldY) ~ ., data = car_train, method = "glmnet
 # Make predictions on the test set
 predict_train_lr <- predict(train_model_lr, car_test)
 
-# Generate confusion matrix
-confusionMatrix(as.factor(predict_train_lr), as.factor(car_test$soldY), positive = "1")
+summary(predict_train_lr)
 
+# Generate confusion matrix
+l<- confusionMatrix(as.factor(predict_train_lr), as.factor(car_test$soldY), positive = "1")
+
+kappa_TunedRegression<-l$overall["Kappa"]
+print(kappa_TunedRegression)
+print(l)
 ```
 
-## Combining Tunes Models
+<span style="color: magenta;">The generated matrix shows that the Logistic Regression Tuned Model successfully predicted `r l$table[2,2]` cars will be sold successfully, and that we should avoid buying `r l$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r l$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r l$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
 
-# Creating Combined-Tuned Data Frame
+# Combining Tuned Models
+
+## Combined-Tuned Data Frame
 ```{r}
 # Logistic Regression - predict_train_lr
 # KNN - predict_train_knn
@@ -299,26 +382,25 @@ combined_tune_model <- data.frame(predict_train_lr, predict_train_knn, midpred, 
 colnames(combined_tune_model) <- c("Logistical Regression", "KNN", "ANN", " Decision Tree", "Random Forest", "actuals")
 
 summary(combined_tune_model)
-
 ```
 
-#Test and Train the Combined-Tuned
+## Test and Train Combined-Tuned Models
 ```{r}
 set.seed(12345)
 test_combined_tune <- sample(1:nrow(combined_tune_model), 0.3*nrow(combined_tune_model))
 
 # Create a train set and test set
-#First the predictors - all columns except the actuals column
+# First the predictors - all columns except the actuals column
 combined_tune_test <- combined_tune_model[test_combined_tune, -match("actuals",names(combined_tune_model))]
 combined_tune_train <- combined_tune_model[-test_combined_tune, -match("actuals",names(combined_tune_model))]
 
-#Now the response (aka Labels) - only the actuals column
+# Now the response (aka Labels) - only the actuals column
 combined_tune_train_labels <- combined_tune_model[-test_combined_tune, "actuals"]
 combined_tune_test_labels <- combined_tune_model[test_combined_tune, "actuals"]
 
 ```
 
-#Decision Tree with Combined-Tuned Predictions
+## Decision Tree with Combined-Tuned Predictions
 ```{r}
 combined_tune_tree <- C5.0(as.factor(combined_tune_train_labels) ~., data = combined_tune_train)
 
@@ -328,17 +410,39 @@ summary(combined_tune_tree)
 
 combined_tune_pred <- predict(combined_tune_tree, combined_tune_test)
 
-confusionMatrix(as.factor(combined_tune_pred), as.factor(combined_tune_test_labels), positive = "1")
+m<- confusionMatrix(as.factor(combined_tune_pred), as.factor(combined_tune_test_labels), positive = "1")
 
+kappa_combinedtunedDT<-l$overall["Kappa"]
+print(kappa_combinedtunedDT)
+print(m)
 ```
+
+<span style="color: magenta;">The generated matrix shows that the Decision Tree with Combined Tuning successfully predicted `r m$table[2,2]` cars will be sold successfully, and that we should avoid buying `r m$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r m$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r m$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
 
 ## Cost Matrix of the Combined-Tuned Model
 ```{r}
-error_cost <- matrix(c(0, 1, 10, 0), nrow = 2)
+error_cost <- matrix(c(0, 1, 4, 0), nrow = 2)
 
 #error_cost
 
 error_tune_model <- C5.0(as.factor(combined_tune_train_labels) ~ ., data = combined_tune_train, costs = error_cost)
 error_tune_pred <- predict(error_tune_model, combined_tune_test)
-confusionMatrix(as.factor(error_tune_pred), as.factor(combined_tune_test_labels), positive = "1")
+n<- confusionMatrix(as.factor(error_tune_pred), as.factor(combined_tune_test_labels), positive = "1")
+kappa_comninedtunedCostMat<- m$overall["Kappa"]
+print(kappa_comninedtunedCostMat)
+print(n)
 ```
+
+<span style="color: magenta;">The generated matrix shows that the Cost Matrix of the Combined-Tuned Model successfully predicted `r n$table[2,2]` cars will be sold successfully, and that we should avoid buying `r n$table[1,1]` cars as they will not be sold. However, the prediction causes us to miss out on `r n$table[1,2]` cars, as they could have been sold, but they were not purchased. Furthermore, we take a loss on `r n$table[2,1]` cars, as we bought those cars and will not be able to sell them.</span>
+
+# Kappa Values and Accuracy Summary
+```{r}
+Kappa_Summary_Table<-data.frame(kappa_Regression=kappa_Regression,kappa_KNN=kappa_KNN,kappa_ANN=kappa_ANN, kappa_RandomForest=kappa_RandomForest, kappa_DecisionTree=kappa_DecisionTree, kappa_StackedModelDT=kappa_StackedModelDT, kappa_InitialCostMatrix=kappa_InitialCostMatrix, kappa_ImprovedDT=kappa_ImprovedDT,kappa_TunedRegression=kappa_TunedRegression,Kappa_TunedKNN=Kappa_TunedKNN, kappa_TunedRandomForest,kappa_TunedANN=kappa_TunedANN, kappa_combinedtunedDT=kappa_combinedtunedDT, kappa_comninedtunedCostMat=kappa_comninedtunedCostMat)
+
+print(t(Kappa_Summary_Table))
+```
+
+<span style="color: green;"> From the Summary of Cohen's Kappa Values before and after tuning, it can be inferred that tuning improves the Kappa for each model. The largest improvement was for the ANN model, with an improvement in Kappa of 0.1167, whereas the least improvement was for both the Logistic Regression & Random Forest models. Additionally, the Combined-Tuned Decision Tree's Kappa is less than the original Stacked Decision tree. The kappa behavior before and after Auto-Tuning is summarized in the plot above. 
+
+We will select the Tuned Regression Model to predict car selling behavior because it has the largest increase in Kappa. 
